@@ -116,13 +116,40 @@ export class Pool {
   sessionStarted(data: Employee) {
     const message = `🚧 ${data.data.user.name} has Started a session using:\n${data.data.account.name} (${data.data.account.email})`
     sendMessage(message)
+    prisma.session.create({
+      data: {
+        accountId: data.data.account.id,
+        useremail: data.data.user.email,
+        username: data.data.user.name,
+      },
+    })
   }
   
-  sessionEnded(data: Employee) {
+  async sessionEnded(data: Employee) {
     
     const fullTime = ms(Date.now() - data.startTime, { long: true })
     const message = `✅ ${data.data.user.name} has Stop a session using:\n${data.data.account.name} (${data.data.account.email}) ~ ${fullTime}`
     sendMessage(message)
+    const session = await prisma.session.findFirst({
+      where: {
+        accountId: data.data.account.id,
+        useremail: data.data.user.email,
+        end: null,
+        username: data.data.user.name,
+      }
+    })
+
+    if (session) {
+      await prisma.session.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          end: new Date(),
+        },
+      })
+    }
+
   }
 
   polling() {
